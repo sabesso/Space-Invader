@@ -2,6 +2,8 @@ const right = 1;
 const left = -1;
 const down = 10;
 
+let height = 600;
+let width = 800;
 let ship;
 let drops = [];
 let aliens = [];
@@ -15,6 +17,8 @@ let explodeImg;
 let explosionSprite = [];
 let aliensSprite;
 let aliensImg = [];
+let redLine = height * 3/4;
+let blueLine = height * 2/4; 
 
 function preload() {
   shipImg = loadImage('images/ship.png');
@@ -25,13 +29,29 @@ function preload() {
 }
 
 function setup() {
-  createCanvas(800, 600);
+  createCanvas(width, height);
   init();
   ship = new Ship(shipImg);
 }
 
+function red_stroke() {
+  stroke(255,0,0);
+}
+
+function blue_stroke() {
+  stroke(0,0,120);
+}
+
+function horizontalLine(color, pos) {
+  color();
+  strokeWeight(1);
+  line(0, pos, width, pos);
+}
+
 function draw() {
   background(0);
+  horizontalLine(red_stroke, redLine);
+  horizontalLine(blue_stroke, blueLine);
   //  Check, draw and move the aliens
   checkAliens();
   drawAliens();
@@ -69,11 +89,8 @@ function init() {
   for (let j = 0; j < 5; j++) {
     for (let i = 0, x = 60; i < 14; i++, x += 50) {
       let color = int(random(aliensImg.length));
-      if (color == 1) {
-        aliens.push(new Alien(x,50*j,aliensImg[color],explosionSprite,true));
-      } else {
-        aliens.push(new Alien(x,50*j,aliensImg[color],explosionSprite,false));
-      }
+      let isBlue = (color == 2);
+      aliens.push(new Alien(x,50*j,aliensImg[color],explosionSprite,isBlue));
     }
   }
 }
@@ -89,18 +106,24 @@ function checkAliens() {
   });
 
   //  Check if the alien hits the left or right wall
-  for (let i = 0; i < aliens.length; i++) {
-    yDirection = 0;
-    if (aliens[i].x + 30 > width) {
-      xDirection = left;
-      yDirection = down;
-      break;
-    } else if (aliens[i].x - 1 < 0) {
-      xDirection = right;
-      yDirection = down;
-      break;
-    } 
+  yDirection = 0;
+  if (aliens.filter(alien => alien.x + 30 > width).length > 0) {
+    xDirection = left;
+    yDirection = down;
+  } else if (aliens.filter(alien => alien.x < 1).length > 0) {
+    xDirection = right;
+    yDirection = down;
   }
+
+  //  Check if the aliens arrived to the red line
+  aliens.forEach(alien => {
+    if (alien.bottom() == redLine) {
+      alien.speed = 3;
+    }
+    if (alien.bottom() == blueLine) {
+      alien.shield = false;
+    }
+  });
 }
 
 //  *** To draw all the aliens
@@ -123,8 +146,10 @@ function checkDrops() {
   drops.forEach(drop => {
     aliens.forEach(alien => {
       if (drop.hits(alien)) {
-        console.log("Warning !");
-        alien.toExplode = true;
+        if (!alien.shield) {
+          console.log("Warning !");
+          alien.toExplode = true;
+        }
         drop.toDelete = true;
       }
     });
