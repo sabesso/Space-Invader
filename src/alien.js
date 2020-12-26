@@ -5,7 +5,7 @@ class Alien {
         this.img = img;
         this.animation = animation;
         this.shield = shield;
-        this.speed = 1.5;
+        this.speed = 2;
         this.width = 30;
         this.height = 30;
         this.toExplode = false;

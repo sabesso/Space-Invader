@@ -4,7 +4,6 @@ class Ship {
         this.y = height-30;
         // this.dir = 0;
         this.img = img;
-        this.speed = 0;
     }
     
     draw() {

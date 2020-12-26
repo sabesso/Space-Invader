@@ -5,6 +5,7 @@ class Drop {
         this.r = 10;
         this.img = img;
         this.toDelete = false;
+        this.speed = 7;
     }
 
     draw() {
@@ -13,7 +14,7 @@ class Drop {
         // ellipse(this.x, this.y, this.r, this.r);
     }
     move() {
-        this.y -= 5;
+        this.y -= this.speed;
     }
     hits(alien) {
         if (this.x >= alien.x && this.x <= alien.x + alien.width && this.y >= alien.y && this.y <= alien.y + alien.height) {

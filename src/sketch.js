@@ -11,27 +11,47 @@ let alienDrops = [];
 let xDirection = right;
 let yDirection = 0;
 let shipImg;
-let alienImg;
 let dropImg;
-let explodeImg;
-let explosionSprite = [];
+let explosionSprite;
+let explosionImg = [];
 let aliensSprite;
 let aliensImg = [];
 let redLine = height * 3/4;
 let blueLine = height * 2/4; 
+let stars = 0;
+let backgroundImg;
+let shipSpeed = 7;
+let shootSound;
+let explosionSound;
+let hitSound;
+let button;
 
 function preload() {
+  //  Loading images...
   shipImg = loadImage('images/ship.png');
-  alienImg = loadImage('images/alien.png');
   dropImg = loadImage('images/drop1.png');
-  explodeImg = loadImage('images/explode.png');
-  aliensSprite = loadImage('images/aliens3.png');
+  explosionSprite = loadImage('images/explode.png');
+  aliensSprite = loadImage('images/aliens.png');
+  star = loadImage('images/star.png');
+  backgroundImg = loadImage('images/background.png');
+  //  Loading sounds...
+  soundFormats('mp3', 'wav');
+  shootSound = loadSound('sounds/shoot.wav');
+  explosionSound = loadSound('sounds/explosion.wav');
+  hitSound = loadSound('sounds/fastinvader4.wav');
 }
 
 function setup() {
-  createCanvas(width, height);
+  let cnv = createCanvas(width, height);
+  // cnv.position(350,0);
   init();
   ship = new Ship(shipImg);
+  button = createButton("jouer");
+  button.mousePressed(togglePlaying);
+}
+
+function togglePlaying() {
+  
 }
 
 function red_stroke() {
@@ -49,7 +69,8 @@ function horizontalLine(color, pos) {
 }
 
 function draw() {
-  background(0);
+  // background(0);
+  image(backgroundImg, 0, 0, width, height);
   horizontalLine(red_stroke, redLine);
   horizontalLine(blue_stroke, blueLine);
   //  Check, draw and move the aliens
@@ -69,28 +90,40 @@ function draw() {
 //  *** Initiation to create diffrent images from the Sprite & making an array of aliens
 function init() {
   //  Create an array to get each frame from the Sprite of aliens
+  let redAlien = aliensSprite.get(0, 0, 48, 34);
+  aliensImg.push(redAlien);
   let greenAlien = aliensSprite.get(56, 0, 36, 35);
   aliensImg.push(greenAlien);
   let yellowAlien = aliensSprite.get(98, 0, 32, 36);
   aliensImg.push(yellowAlien);
   let blueAlien = aliensSprite.get(137, 0, 37, 36);
-  aliensImg.push(blueAlien); 
-  let redAlien = aliensSprite.get(0, 0, 48, 34);
-  aliensImg.push(redAlien);
+  aliensImg.push(blueAlien);
+  aliensImg.push(star);
 
   //  Create an array to get each frame from the Sprite of explosions
   for (let i = 0; i < 4; i++) {
     for (let j = 0; j < 4; j++) {
-      let img = explodeImg.get(j*40, i*40, 40, 40);
-      explosionSprite.push(img);   
+      let img = explosionSprite.get(j*40, i*40, 40, 40);
+      explosionImg.push(img);   
     }
   }
   //  Create an array of Aliens 14 columns x 5 rows
   for (let j = 0; j < 5; j++) {
     for (let i = 0, x = 60; i < 14; i++, x += 50) {
-      let color = int(random(aliensImg.length));
-      let isBlue = (color == 2);
-      aliens.push(new Alien(x,50*j,aliensImg[color],explosionSprite,isBlue));
+      if (stars < 5) {
+        let color = int(random(aliensImg.length));
+        let isBlue = (color == 3);
+        let isStar = (color == 4);
+        if (isStar) {
+          stars++;
+        } 
+        aliens.push(new Alien(x,50*j,aliensImg[color],explosionImg,isBlue,isStar));
+      } else {
+        let color = int(random(aliensImg.length - 1));
+        let isBlue = (color == 3);
+        let isStar = false;
+        aliens.push(new Alien(x,50*j,aliensImg[color],explosionImg,isBlue,isStar));
+      }
     }
   }
 }
@@ -115,7 +148,7 @@ function checkAliens() {
     yDirection = down;
   }
 
-  //  Check if the aliens arrived to the red line
+  //  Check if the aliens arrived to the red or blue line
   aliens.forEach(alien => {
     if (alien.bottom() == redLine) {
       alien.speed = 3;
@@ -147,8 +180,10 @@ function checkDrops() {
     aliens.forEach(alien => {
       if (drop.hits(alien)) {
         if (!alien.shield) {
-          console.log("Warning !");
+          explosionSound.play();
           alien.toExplode = true;
+        } else {
+          hitSound.play();
         }
         drop.toDelete = true;
       }
@@ -189,25 +224,26 @@ function keyReleased() {
   if (keyCode === LEFT_ARROW) {
     ship.setSpeed(0);
     if (keyIsDown(RIGHT_ARROW))
-    	ship.setSpeed(5);
+    	ship.setSpeed(shipSpeed);
   } 
   else if (keyCode === RIGHT_ARROW) {
     ship.setSpeed(0);
     if (keyIsDown(LEFT_ARROW))
-    	ship.setSpeed(-5);
+    	ship.setSpeed(-shipSpeed);
   }
 }
 
 //  *** Moves the ship if the left or right arrow key is held down
 function keyPressed() {
   if (keyCode === LEFT_ARROW)
-    ship.setSpeed(-5);
+    ship.setSpeed(-shipSpeed);
   else if (keyCode === RIGHT_ARROW)
-    ship.setSpeed(5);
+    ship.setSpeed(shipSpeed);
   if (key === ' ') {
     if (drops.length <= 5) {
       drop = new Drop(ship.x - 4, ship.y - 20, dropImg);
       drops.push(drop);
+      shootSound.play();
     }
   }
 }
