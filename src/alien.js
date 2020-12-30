@@ -1,11 +1,13 @@
 class Alien {
-    constructor(x, y, img, animation, shield) {
+    constructor(x, y, img, animation, shoot, shield, star) {
         this.x = x;
         this.y = y;
         this.img = img;
         this.animation = animation;
+        this.shoot = shoot;
         this.shield = shield;
-        this.speed = 2;
+        this.star = star; 
+        this.speed = 0.5;
         this.width = 30;
         this.height = 30;
         this.toExplode = false;

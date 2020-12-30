@@ -10,8 +10,6 @@ class Drop {
 
     draw() {
         image(this.img, this.x, this.y, this.r/2, this.r);
-        // fill(200, 0 , 100);
-        // ellipse(this.x, this.y, this.r, this.r);
     }
     move() {
         this.y -= this.speed;
@@ -23,12 +21,4 @@ class Drop {
             return false;
         }
     }
-    // takeOut() {
-    //     this.toDelete = true;
-    // }
-    // animate() {
-    //     if (animate) {
-            
-    //     }
-    // }
 }

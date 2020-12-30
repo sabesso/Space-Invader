@@ -10,6 +10,7 @@ let aliens = [];
 let alienDrops = [];
 let xDirection = right;
 let yDirection = 0;
+let ufoImg;
 let shipImg;
 let dropImg;
 let explosionSprite;
@@ -25,10 +26,12 @@ let shootSound;
 let explosionSound;
 let hitSound;
 let button;
+let timer = 500;
+let live = 3;
 
 function preload() {
   //  Loading images...
-  shipImg = loadImage('images/ship.png');
+  ufoImg = loadImage('images/ufo.png');
   dropImg = loadImage('images/drop1.png');
   explosionSprite = loadImage('images/explode.png');
   aliensSprite = loadImage('images/aliens.png');
@@ -45,9 +48,11 @@ function setup() {
   let cnv = createCanvas(width, height);
   // cnv.position(350,0);
   init();
-  ship = new Ship(shipImg);
+  ship = new Ship(shipImg,explosionImg);
   button = createButton("jouer");
   button.mousePressed(togglePlaying);
+
+  setInterval(createAlienDrops, timer);
 }
 
 function togglePlaying() {
@@ -82,6 +87,7 @@ function draw() {
   moveDrops();
   //  Check & draw the drops from aliens
   checkAlienDrops();
+  moveAlienDrops();
   //  Draw and move the ship
   ship.draw();
   ship.move();
@@ -89,6 +95,7 @@ function draw() {
 
 //  *** Initiation to create diffrent images from the Sprite & making an array of aliens
 function init() {
+  shipImg = ufoImg.get(0, 150, 540, 390);
   //  Create an array to get each frame from the Sprite of aliens
   let redAlien = aliensSprite.get(0, 0, 48, 34);
   aliensImg.push(redAlien);
@@ -112,17 +119,19 @@ function init() {
     for (let i = 0, x = 60; i < 14; i++, x += 50) {
       if (stars < 5) {
         let color = int(random(aliensImg.length));
+        let isYellow = (color == 2);
         let isBlue = (color == 3);
         let isStar = (color == 4);
         if (isStar) {
           stars++;
         } 
-        aliens.push(new Alien(x,50*j,aliensImg[color],explosionImg,isBlue,isStar));
+        aliens.push(new Alien(x,50*j,aliensImg[color],explosionImg,isYellow,isBlue,isStar));
       } else {
         let color = int(random(aliensImg.length - 1));
+        let isYellow = (color == 2);
         let isBlue = (color == 3);
         let isStar = false;
-        aliens.push(new Alien(x,50*j,aliensImg[color],explosionImg,isBlue,isStar));
+        aliens.push(new Alien(x,50*j,aliensImg[color],explosionImg,isYellow,isBlue,isStar));
       }
     }
   }
@@ -180,6 +189,16 @@ function checkDrops() {
     aliens.forEach(alien => {
       if (drop.hits(alien)) {
         if (!alien.shield) {
+          if(alien.star) {
+            let index = aliens.indexOf(alien);
+            index1 = index + 1;
+            index2 = index - 1;
+            aliens[index1].toExplode = true;
+            aliens[index2].toExplode = true;
+            console.log("index = " + index);
+            console.log("index + = " + index1);
+            console.log("index - = " + index2);
+          }
           explosionSound.play();
           alien.toExplode = true;
         } else {
@@ -210,14 +229,49 @@ function moveDrops() {
 }
 
 //  *** Checking the drops of aliens
+function createAlienDrops() {
+  // let obj = aliens.find(alien => (alien.shooter && !alien.shoot));
+  let al = aliens[Math.floor(Math.random() * aliens.length)];
+  if (al.shoot) {
+    alienDrops.push(new AlienDrop(al.x+15,al.y+30,dropImg));
+  }
+}
+
 function checkAlienDrops() {
-  aliens.forEach(alien => {
-    if (alien.shot) {
-      
+   //  Checking if hits aliens
+  alienDrops.forEach(drop => {
+    if (drop.hits(ship)) {
+      if (live > 0) {
+        live--;
+        console.log("Ship has effected!");
+      } else {
+        ship.toExplode = true;
+      }
+      drop.toDelete = true;
+    }
+    // console.log("drop " + drop.x);
+    // console.log("ship " + ship.x);
+    if (drop.y > height) {
+      drop.toDelete = true;
     }
   });
 
+  //  Checking drop if out of the scene
+  alienDrops.forEach(drop => {
+    if (drop.toDelete) {
+      let index = alienDrops.indexOf(drop);
+      alienDrops.splice(index, 1);
+    }
+  });
 }
+
+function moveAlienDrops() {
+  alienDrops.forEach(drop => {
+    drop.draw();
+    drop.move();
+  });
+}
+
 
 //  *** Stops ship if the left or right arrow key is no longer held down
 function keyReleased() {
@@ -241,7 +295,7 @@ function keyPressed() {
     ship.setSpeed(shipSpeed);
   if (key === ' ') {
     if (drops.length <= 5) {
-      drop = new Drop(ship.x - 4, ship.y - 20, dropImg);
+      drop = new Drop(ship.x+(ship.width/2)-4 , ship.y-10 , dropImg);
       drops.push(drop);
       shootSound.play();
     }
