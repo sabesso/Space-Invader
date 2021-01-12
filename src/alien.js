@@ -13,6 +13,8 @@ class Alien {
         this.toExplode = false;
         this.toDelete = false;
         this.index = 0;
+        this.right = true;
+        this.left = true;
     }
 
     bottom() {

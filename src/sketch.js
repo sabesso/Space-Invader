@@ -188,19 +188,44 @@ function checkDrops() {
   drops.forEach(drop => {
     aliens.forEach(alien => {
       if (drop.hits(alien)) {
-        if (!alien.shield) {
-          if(alien.star) {
-            let index = aliens.indexOf(alien);
-            index1 = index + 1;
-            index2 = index - 1;
-            aliens[index1].toExplode = true;
-            aliens[index2].toExplode = true;
-            console.log("index = " + index);
-            console.log("index + = " + index1);
-            console.log("index - = " + index2);
-          }
+        if (!alien.shield && !alien.star) {
           explosionSound.play();
+          let index = aliens.indexOf(alien);
+          aliens[index + 1].left = false;
+          aliens[index - 1].right = false;
           alien.toExplode = true;
+        } else if (!alien.shield && alien.star) {
+          let index = aliens.indexOf(alien);
+          if (alien.right && !aliens[index+1].shield) {
+            aliens[index + 1].right = false;
+            aliens[index + 1].left = false;
+            aliens[index + 1].toExplode = true;
+          } 
+          if (alien.left && !aliens[index-1].shield) {
+            aliens[index - 1].right = false;
+            aliens[index - 1].left = false;
+            aliens[index - 1].toExplode = true;
+          }
+          alien.right = false;
+          alien.left = false;
+          alien.toExplode = true;
+          explosionSound.play();
+          console.log(alien);
+          console.log(aliens[index+1]);
+          console.log(aliens[index-2]);
+
+
+
+          // if(alien.star) {
+          // let index = aliens.indexOf(alien);
+          // index1 = index + 1;
+          // index2 = index - 1;
+          //   aliens[index1].toExplode = true;
+          //   aliens[index2].toExplode = true;
+          //   console.log("index = " + index);
+          //   console.log("index + = " + index1);
+          //   console.log("index - = " + index2);
+          // }
         } else {
           hitSound.play();
         }
