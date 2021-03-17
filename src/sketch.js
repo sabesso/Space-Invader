@@ -4,10 +4,14 @@ const down = 10;
 
 let height = 600;
 let width = 800;
+let columns = 14;
+let rows = 5;
 let ship;
 let drops = [];
 let aliens = [];
+let alienStatus = [];
 let alienDrops = [];
+let aliensExiste = true;
 let xDirection = right;
 let yDirection = 0;
 let ufoImg;
@@ -25,9 +29,16 @@ let shipSpeed = 7;
 let shootSound;
 let explosionSound;
 let hitSound;
-let button;
-let timer = 500;
-let live = 3;
+let counter;
+let time = 500;
+let live = 2;
+let star = 4, shield = 3, shooter = 2, normal = 1, exploded = 0;
+let stage = 0;  //  Which function should be running right now ?
+                //  stage 0 = splash
+                //  stage 1 = game
+                //  stage 2 = win
+let textColor = (0,255,0);
+let titleFont;
 
 function preload() {
   //  Loading images...
@@ -35,13 +46,18 @@ function preload() {
   dropImg = loadImage('images/drop1.png');
   explosionSprite = loadImage('images/explode.png');
   aliensSprite = loadImage('images/aliens.png');
-  star = loadImage('images/star.png');
+  starImg = loadImage('images/star.png');
   backgroundImg = loadImage('images/background.png');
   //  Loading sounds...
   soundFormats('mp3', 'wav');
   shootSound = loadSound('sounds/shoot.wav');
   explosionSound = loadSound('sounds/explosion.wav');
   hitSound = loadSound('sounds/fastinvader4.wav');
+  //  Loading fonts
+  titleFont = loadFont('fonts/candy_pop/Candy_Pop.ttf');
+  bodyFont = loadFont('fonts/brighly_crush/Brightly_Crush_Shine.otf');
+  // titleFont = loadFont('fonts/daily_hours/Daily Hours.ttf');
+  // titleFont = loadFont('fonts/fluo_gums/Fluo Gums.ttf');
 }
 
 function setup() {
@@ -49,14 +65,6 @@ function setup() {
   // cnv.position(350,0);
   init();
   ship = new Ship(shipImg,explosionImg);
-  button = createButton("jouer");
-  button.mousePressed(togglePlaying);
-
-  setInterval(createAlienDrops, timer);
-}
-
-function togglePlaying() {
-  
 }
 
 function red_stroke() {
@@ -74,10 +82,58 @@ function horizontalLine(color, pos) {
 }
 
 function draw() {
-  // background(0);
+  if (stage == 0) {
+    splash();
+  } else if (stage == 1) {
+    game();
+  } else if (stage == 2) {
+    win();
+    clearInterval(counter);
+  }
+
+  if (mouseIsPressed && stage == 0) {
+    stage = 1;
+    counter = setInterval(createAlienDrops, time);
+  }
+
+  // if (!focused) {
+  //   counter.pause();
+  // }
+}
+
+//  Introduction to game
+function splash() {
+  image(backgroundImg, 0, 0, width, height);
+  //  Words for Splash
+  fill(200,255,200);
+  textFont(titleFont);
+  textAlign(CENTER);
+  textSize(40);
+  text('SPACE INVADER', width/2, 100);
+
+  textAlign(LEFT);
+  textSize(20);
+  text('COMMENT JOUER : ', width/8, 200);
+
+  textFont(bodyFont);
+  textSize(20);
+  text('Appuyez sur les flèches Droite et Gauche pour vous déplacer', width/8, 250);
+  text('Appuyez sur Espace pour tirer', width/8, 300);
+  text('Détruire tous les Aliens pour gagner', width/8, 350);
+
+  textFont(titleFont);
+  textAlign(CENTER);
+  textSize(30);
+  text("Cliquez sur l'écran pour commencer", width/2, 450);
+}
+
+function game() {
   image(backgroundImg, 0, 0, width, height);
   horizontalLine(red_stroke, redLine);
   horizontalLine(blue_stroke, blueLine);
+  //  Check & draw the drops from aliens
+  checkAlienDrops();
+  moveAlienDrops();
   //  Check, draw and move the aliens
   checkAliens();
   drawAliens();
@@ -85,12 +141,19 @@ function draw() {
   //  Check, draw and move the drops
   checkDrops();
   moveDrops();
-  //  Check & draw the drops from aliens
-  checkAlienDrops();
-  moveAlienDrops();
   //  Draw and move the ship
   ship.draw();
   ship.move();
+}
+
+function win() {
+  image(backgroundImg, 0, 0, width, height);
+  //  Words for Win
+  fill(0,255,0);
+  textFont(titleFont);
+  textAlign(CENTER);
+  textSize(40);
+  text('Félicitation, Tu as gagner...', width/2, 200);
 }
 
 //  *** Initiation to create diffrent images from the Sprite & making an array of aliens
@@ -105,7 +168,7 @@ function init() {
   aliensImg.push(yellowAlien);
   let blueAlien = aliensSprite.get(137, 0, 37, 36);
   aliensImg.push(blueAlien);
-  aliensImg.push(star);
+  aliensImg.push(starImg);
 
   //  Create an array to get each frame from the Sprite of explosions
   for (let i = 0; i < 4; i++) {
@@ -115,70 +178,134 @@ function init() {
     }
   }
   //  Create an array of Aliens 14 columns x 5 rows
-  for (let j = 0; j < 5; j++) {
-    for (let i = 0, x = 60; i < 14; i++, x += 50) {
+  for (let j = 0; j < rows; j++) {
+    // alienStatus[j] = [];
+    aliens[j] = [];
+    alienStatus[j] = [];
+    for (let i = 0, x = 60; i < columns; i++, x += 50) {
       if (stars < 5) {
         let color = int(random(aliensImg.length));
         let isYellow = (color == 2);
         let isBlue = (color == 3);
         let isStar = (color == 4);
-        if (isStar) {
+        
+        if (isBlue) {
+          alienStatus[j][i] = shield;
+        } else if (isStar) {
+          alienStatus[j][i] = star;
           stars++;
-        } 
-        aliens.push(new Alien(x,50*j,aliensImg[color],explosionImg,isYellow,isBlue,isStar));
+        } else if (isYellow) {
+          alienStatus[j][i] = shooter;
+        } else {
+          alienStatus[j][i] = normal;
+        }
+        aliens[j][i] = new Alien(x,50*j,aliensImg[color],explosionImg,isYellow,isBlue,isStar);
+        // aliens.push(new Alien(x,50*j,aliensImg[color],explosionImg,isYellow,isBlue,isStar));
       } else {
         let color = int(random(aliensImg.length - 1));
         let isYellow = (color == 2);
         let isBlue = (color == 3);
         let isStar = false;
-        aliens.push(new Alien(x,50*j,aliensImg[color],explosionImg,isYellow,isBlue,isStar));
+        // aliens.push(new Alien(x,50*j,aliensImg[color],explosionImg,isYellow,isBlue,isStar));
+        if (isBlue) {
+          alienStatus[j][i] = shield;
+        } else if (isYellow) {
+          alienStatus[j][i] = shooter;
+        } else {
+          alienStatus[j][i] = normal;
+        }
+        aliens[j][i] = new Alien(x,50*j,aliensImg[color],explosionImg,isYellow,isBlue,isStar);
       }
     }
   }
+  // print(alienStatus);
+  // print(aliensNumber);
+  // console.log(aliensNumber.length);
 }
 
 //  *** Check if the alien has been deleted or hits the wall ***
 function checkAliens() {
-  //  Check if the alien will be deleted or not
-  aliens.forEach(alien => {
-    if (alien.toDelete) {
-      let index = aliens.indexOf(alien);
-      aliens.splice(index, 1);
-    }
-  });
+  //  WIN ... Check if the Player hits all the aliens
+  // for (let i = 0; i < rows; i++) {
+  //   for (let j = 0; j < columns; j++) {
+
+      // if (aliens[i][j].toDelete == false) {
+      //   alienExiste = true;
+      //   break;
+      // }
+  if ( aliens[0].some(alien => alien.toDelete == false) ||
+       aliens[1].some(alien => alien.toDelete == false) ||
+       aliens[2].some(alien => alien.toDelete == false) ||
+       aliens[3].some(alien => alien.toDelete == false) ||
+       aliens[4].some(alien => alien.toDelete == false) ) {
+    stage = 1;
+  } else {
+    stage = 2;
+  }
+      // alienExiste = aliens[i].some(alien => alien.toDelete == false);
+      // // console.log(aliensExiste);
+      // if (alienExiste) {
+      //   stage = 1;
+      // } else {
+      //   stage = 2;
+      // }
+      
+  //   }
+  // }
+  // aliens.forEach(row => {
+  //   alienExiste = row.some(alien => alien.toDelete == false);
+  //   console.log(aliensExiste);
+  //   if (!alienExiste) {
+  //     stage = 2;
+  //   }
+  // });
 
   //  Check if the alien hits the left or right wall
   yDirection = 0;
-  if (aliens.filter(alien => alien.x + 30 > width).length > 0) {
-    xDirection = left;
-    yDirection = down;
-  } else if (aliens.filter(alien => alien.x < 1).length > 0) {
-    xDirection = right;
-    yDirection = down;
+  for (let i = 0; i < rows; i++) {
+    for (let j = 0; j < columns; j++) {
+      if (alienStatus[i][j] != 0) {
+        if (aliens[i][j].x + 30 > width) {
+          xDirection = left;
+          yDirection = down;
+        } else if (aliens[i][j].x < 1) {
+          xDirection = right;
+          yDirection = down;
+        }
+      }
+    }
   }
 
   //  Check if the aliens arrived to the red or blue line
-  aliens.forEach(alien => {
-    if (alien.bottom() == redLine) {
-      alien.speed = 3;
-    }
-    if (alien.bottom() == blueLine) {
-      alien.shield = false;
-    }
+  aliens.forEach(row => {
+    row.forEach(alien => {
+      if (alien.bottom() == redLine) {
+        alien.speed = 3;
+      }
+      if (alien.bottom() == blueLine) {
+        alien.shield = false;
+      }
+    });
   });
 }
 
 //  *** To draw all the aliens
 function drawAliens() {
-  aliens.forEach(alien => {
-    alien.draw();
-  });
+  for (let i = 0; i < rows; i++) {
+    for (let j = 0; j < columns; j++) {
+      if (!aliens[i][j].toDelete) {
+        aliens[i][j].draw();
+      }
+    }
+  }
 }
 
 //  *** To move all the aliens
 function moveAliens() {
-  aliens.forEach(alien => {
-    alien.move(xDirection, yDirection);
+  aliens.forEach(row => {
+    row.forEach(alien => {
+      alien.move(xDirection, yDirection);
+    });
   });
 }
 
@@ -186,56 +313,43 @@ function moveAliens() {
 function checkDrops() {
   //  Checking if hits aliens
   drops.forEach(drop => {
-    aliens.forEach(alien => {
-      if (drop.hits(alien)) {
-        if (!alien.shield && !alien.star) {
-          explosionSound.play();
-          let index = aliens.indexOf(alien);
-          aliens[index + 1].left = false;
-          aliens[index - 1].right = false;
-          alien.toExplode = true;
-        } else if (!alien.shield && alien.star) {
-          let index = aliens.indexOf(alien);
-          if (alien.right && !aliens[index+1].shield) {
-            aliens[index + 1].right = false;
-            aliens[index + 1].left = false;
-            aliens[index + 1].toExplode = true;
-          } 
-          if (alien.left && !aliens[index-1].shield) {
-            aliens[index - 1].right = false;
-            aliens[index - 1].left = false;
-            aliens[index - 1].toExplode = true;
+    for (let i = 0; i < rows; i++) {
+      for (let j = 0; j < columns; j++) {
+        if (alienStatus[i][j] != 0) {
+          if (drop.hits(aliens[i][j])) {
+            if (!aliens[i][j].shield && !aliens[i][j].star) {
+              explosionSound.play();
+              aliens[i][j].toExplode = true;
+              alienStatus[i][j] = 0;
+            } else if (aliens[i][j].star) {
+              aliens[i][j].toExplode = true;
+              explosionSound.play();
+              alienStatus[i][j] = 0;
+              if (aliens[i][j+1] != undefined) {
+                if (!aliens[i][j+1].shield) {
+                  aliens[i][j+1].toExplode = true;
+                  alienStatus[i][j+1] = 0;
+                }
+              }
+              if (aliens[i][j-1] != undefined) {
+                if (!aliens[i][j-1].shield) {
+                  aliens[i][j-1].toExplode = true;
+                  alienStatus[i][j-1] = 0;
+                }
+              }
+            } else if (aliens[i][j].shield) {
+              hitSound.play();
+            }
+            drop.toDelete = true;
           }
-          alien.right = false;
-          alien.left = false;
-          alien.toExplode = true;
-          explosionSound.play();
-          console.log(alien);
-          console.log(aliens[index+1]);
-          console.log(aliens[index-2]);
-
-
-
-          // if(alien.star) {
-          // let index = aliens.indexOf(alien);
-          // index1 = index + 1;
-          // index2 = index - 1;
-          //   aliens[index1].toExplode = true;
-          //   aliens[index2].toExplode = true;
-          //   console.log("index = " + index);
-          //   console.log("index + = " + index1);
-          //   console.log("index - = " + index2);
-          // }
-        } else {
-          hitSound.play();
         }
-        drop.toDelete = true;
       }
-    });
+    }
     if (drop.y < 0) {
       drop.toDelete = true;
     }
   });
+
   //  Checking drop if out of the scene
   drops.forEach(drop => {
     if (drop.toDelete) {
@@ -255,9 +369,8 @@ function moveDrops() {
 
 //  *** Checking the drops of aliens
 function createAlienDrops() {
-  // let obj = aliens.find(alien => (alien.shooter && !alien.shoot));
-  let al = aliens[Math.floor(Math.random() * aliens.length)];
-  if (al.shoot) {
+  let al = aliens[Math.floor(Math.random() * rows)][Math.floor(Math.random() * columns)];
+  if (!al.toDelete && al.shoot) {
     alienDrops.push(new AlienDrop(al.x+15,al.y+30,dropImg));
   }
 }
@@ -274,8 +387,6 @@ function checkAlienDrops() {
       }
       drop.toDelete = true;
     }
-    // console.log("drop " + drop.x);
-    // console.log("ship " + ship.x);
     if (drop.y > height) {
       drop.toDelete = true;
     }

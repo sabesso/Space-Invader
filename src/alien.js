@@ -7,7 +7,7 @@ class Alien {
         this.shoot = shoot;
         this.shield = shield;
         this.star = star; 
-        this.speed = 0.5;
+        this.speed = 1;
         this.width = 30;
         this.height = 30;
         this.toExplode = false;
